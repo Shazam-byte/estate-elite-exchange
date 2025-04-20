@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,10 +14,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search as SearchIcon } from "lucide-react";
+import { Enums } from "@/integrations/supabase/types";
 
 const Search = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [propertyType, setPropertyType] = useState<string>("");
+  const [propertyType, setPropertyType] = useState<Enums["property_type"] | "">("");
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(2000000);
   const [minBeds, setMinBeds] = useState(0);
@@ -87,7 +87,10 @@ const Search = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div>
               <Label htmlFor="property-type" className="mb-2 block">Property Type</Label>
-              <Select value={propertyType} onValueChange={setPropertyType}>
+              <Select 
+                value={propertyType} 
+                onValueChange={(value: Enums["property_type"] | "") => setPropertyType(value)}
+              >
                 <SelectTrigger id="property-type">
                   <SelectValue placeholder="Any Type" />
                 </SelectTrigger>
