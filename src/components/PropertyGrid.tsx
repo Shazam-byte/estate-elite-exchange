@@ -1,24 +1,16 @@
 
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { PropertyCard } from "./PropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PropertyCard } from "./PropertyCard";
+import { type Database } from "@/integrations/supabase/types";
 
-export function PropertyGrid() {
-  const { data: properties, isLoading } = useQuery({
-    queryKey: ["properties"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("status", "approved")
-        .order("created_at", { ascending: false });
+type Property = Database["public"]["Tables"]["properties"]["Row"];
 
-      if (error) throw error;
-      return data;
-    },
-  });
+interface PropertyGridProps {
+  properties?: Property[];
+  isLoading?: boolean;
+}
 
+export function PropertyGrid({ properties, isLoading }: PropertyGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
