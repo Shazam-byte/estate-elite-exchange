@@ -1,7 +1,7 @@
-
 import { Building, MapPin, Bed, Bath } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { type Database } from "@/integrations/supabase/types";
+import { useNavigate } from "react-router-dom";
 
 type Property = Database["public"]["Tables"]["properties"]["Row"];
 
@@ -10,6 +10,8 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property }: PropertyCardProps) {
+  const navigate = useNavigate();
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -19,7 +21,10 @@ export function PropertyCard({ property }: PropertyCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card 
+      className="overflow-hidden cursor-pointer transition-transform hover:scale-[1.02]"
+      onClick={() => navigate(`/property/${property.id}`)}
+    >
       <div className="aspect-[16/9] relative">
         <img
           src={property.image_urls?.[0] || '/placeholder.svg'}
