@@ -1,7 +1,6 @@
-
 import { Skeleton } from "@/components/ui/skeleton";
 import { PropertyCard } from "./PropertyCard";
-import { type Database } from "@/integrations/supabase/types";
+import { type Database } from "@/lib/types";
 
 type Property = Database["public"]["Tables"]["properties"]["Row"];
 

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,8 +11,11 @@ import Favorites from "./pages/Favorites";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import AgentDashboard from "./pages/AgentDashboard";
+import AddListing from "./pages/AddListing";
+import AdminDashboard from "./pages/AdminDashboard";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,46 @@ const App = () => {
     return <>{children}</>;
   };
 
+  // Protect agent routes
+  const AgentRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!session) {
+      return <Navigate to="/auth" replace />;
+    }
+    // Check if user is an agent
+    const checkAgentRole = async () => {
+      const { data } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      return data?.role === 'agent';
+    };
+    if (!checkAgentRole()) {
+      return <Navigate to="/" replace />;
+    }
+    return <>{children}</>;
+  };
+
+  // Protect admin routes
+  const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+    if (!session) {
+      return <Navigate to="/auth" replace />;
+    }
+    // Check if user is an admin
+    const checkAdminRole = async () => {
+      const { data } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+      return data?.role === 'admin';
+    };
+    if (!checkAdminRole()) {
+      return <Navigate to="/" replace />;
+    }
+    return <>{children}</>;
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -72,6 +114,30 @@ const App = () => {
                   <ProtectedRoute>
                     <Profile />
                   </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/agent-dashboard" 
+                element={
+                  <AgentRoute>
+                    <AgentDashboard />
+                  </AgentRoute>
+                } 
+              />
+              <Route 
+                path="/add-listing" 
+                element={
+                  <AgentRoute>
+                    <AddListing />
+                  </AgentRoute>
+                } 
+              />
+              <Route 
+                path="/admin-dashboard" 
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
                 } 
               />
               <Route path="*" element={<NotFound />} />

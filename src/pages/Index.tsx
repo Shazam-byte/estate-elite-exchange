@@ -1,6 +1,5 @@
-
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { PropertyGrid } from "@/components/PropertyGrid";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -13,7 +12,6 @@ const Index = () => {
       const { data, error } = await supabase
         .from("properties")
         .select("*")
-        .eq("status", "approved")
         .order("created_at", { ascending: false })
         .limit(6);
 
