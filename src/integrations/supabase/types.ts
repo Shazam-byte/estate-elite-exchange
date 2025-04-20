@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generations: {
         Row: {
           created_at: string | null
@@ -31,51 +67,99 @@ export type Database = {
           result?: string
           user_id?: string
         }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      properties: {
+        Row: {
+          agent_id: string | null
+          area: number
+          bathrooms: number
+          bedrooms: number
+          created_at: string
+          description: string
+          id: string
+          image_urls: string[] | null
+          listing_type: string
+          location: string
+          price: number
+          property_type: Database["public"]["Enums"]["property_type"]
+          status: Database["public"]["Enums"]["property_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          area: number
+          bathrooms: number
+          bedrooms: number
+          created_at?: string
+          description: string
+          id?: string
+          image_urls?: string[] | null
+          listing_type?: string
+          location: string
+          price: number
+          property_type: Database["public"]["Enums"]["property_type"]
+          status?: Database["public"]["Enums"]["property_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          area?: number
+          bathrooms?: number
+          bedrooms?: number
+          created_at?: string
+          description?: string
+          id?: string
+          image_urls?: string[] | null
+          listing_type?: string
+          location?: string
+          price?: number
+          property_type?: Database["public"]["Enums"]["property_type"]
+          status?: Database["public"]["Enums"]["property_status"]
+          title?: string
+          updated_at?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "generations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "properties_agent_id_fkey"
+            columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string | null
-          credits: number | null
-          email: string
-          full_name: string | null
-          id: string
-          subscription_id: string | null
-          subscription_status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string | null
-          credits?: number | null
-          email: string
-          full_name?: string | null
-          id: string
-          subscription_id?: string | null
-          subscription_status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string | null
-          credits?: number | null
-          email?: string
-          full_name?: string | null
-          id?: string
-          subscription_id?: string | null
-          subscription_status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
       }
     }
     Views: {
@@ -88,7 +172,15 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      property_status: "pending" | "approved" | "rejected"
+      property_type:
+        | "house"
+        | "apartment"
+        | "condo"
+        | "townhouse"
+        | "land"
+        | "commercial"
+      user_role: "user" | "agent" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -203,6 +295,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      property_status: ["pending", "approved", "rejected"],
+      property_type: [
+        "house",
+        "apartment",
+        "condo",
+        "townhouse",
+        "land",
+        "commercial",
+      ],
+      user_role: ["user", "agent", "admin"],
+    },
   },
 } as const
