@@ -3,22 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/sonner";
 
 interface UserData {
+  id: string;
   email: string;
   fullName: string;
+  role: string;
 }
 
 export function UserProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState<UserData>({
+    id: "",
     email: "",
-    fullName: ""
+    fullName: "",
+    role: ""
   });
-  const [tempData, setTempData] = useState<UserData>(userData);
-  const { toast } = useToast();
+  const [tempName, setTempName] = useState("");
 
   useEffect(() => {
     fetchUserData();
@@ -26,94 +29,132 @@ export function UserProfile() {
 
   const fetchUserData = async () => {
     try {
+      // Get authenticated user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      if (authError) throw authError;
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('Authentication error');
+      }
       
       if (!user) {
-        throw new Error('No authenticated user found');
+        setIsLoading(false);
+        return;
       }
 
       // Get user data from the users table
-      const { data: userProfile, error: profileError } = await supabase
+      const { data, error: profileError } = await supabase
         .from('users')
-        .select('name')
+        .select('id, email, name, role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error('Error fetching user profile:', profileError);
         throw profileError;
       }
 
-      const userData = {
-        email: user.email || "",
-        fullName: userProfile?.name || ""
-      };
+      // If no profile exists, create one
+      if (!data) {
+        const { data: newProfile, error: createError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: user.id,
+              email: user.email,
+              name: '',
+              role: 'user'
+            }
+          ])
+          .select()
+          .single();
 
-      setUserData(userData);
-      setTempData(userData);
-      
+        if (createError) {
+          console.error('Error creating user profile:', createError);
+          throw createError;
+        }
+
+        const newUserData = {
+          id: newProfile.id,
+          email: newProfile.email,
+          fullName: newProfile.name || "",
+          role: newProfile.role
+        };
+        setUserData(newUserData);
+        setTempName(newUserData.fullName);
+      } else {
+        const existingUserData = {
+          id: data.id,
+          email: data.email,
+          fullName: data.name || "",
+          role: data.role
+        };
+        setUserData(existingUserData);
+        setTempName(existingUserData.fullName);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load user data. Please try refreshing the page.",
-        variant: "destructive"
-      });
+      toast.error("Failed to load user data. Please try refreshing the page.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleEdit = async () => {
-    if (isEditing) {
+    if (isEditing && tempName.trim() !== userData.fullName) {
       try {
         setIsLoading(true);
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) throw authError;
-        if (!user) throw new Error('No authenticated user found');
 
-        // Update email in auth if it changed
-        if (tempData.email !== userData.email) {
-          const { error: emailError } = await supabase.auth.updateUser({
-            email: tempData.email
-          });
-          if (emailError) throw emailError;
+        if (!userData.id) {
+          throw new Error('User ID not found');
         }
 
         // Update name in users table
-        const { error: updateError } = await supabase
+        const { data, error: updateError } = await supabase
           .from('users')
-          .update({ name: tempData.fullName })
-          .eq('id', user.id);
+          .update({ 
+            name: tempName.trim(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userData.id)
+          .select()
+          .single();
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating name:', updateError);
+          throw updateError;
+        }
 
-        setUserData(tempData);
-        toast({
-          title: "Success",
-          description: "Profile updated successfully"
+        if (!data) {
+          throw new Error('Failed to update name');
+        }
+
+        // Update local state with the confirmed data from the server
+        setUserData({
+          ...userData,
+          fullName: data.name || ""
         });
-      } catch (error) {
-        console.error('Error updating user data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update profile. Please try again.",
-          variant: "destructive"
-        });
+
+        toast.success("Name updated successfully");
+        setIsEditing(false);
+      } catch (error: any) {
+        console.error('Error updating name:', error);
+        toast.error(error.message || "Failed to update name. Please try again.");
         // Revert changes
-        setTempData(userData);
+        setTempName(userData.fullName);
       } finally {
         setIsLoading(false);
       }
+    } else if (!isEditing) {
+      setIsEditing(true);
+    } else {
+      setIsEditing(false);
+      setTempName(userData.fullName);
     }
-    setIsEditing(!isEditing);
   };
 
   const handleCancel = () => {
-    setTempData(userData);
+    setTempName(userData.fullName);
     setIsEditing(false);
   };
 
@@ -136,16 +177,7 @@ export function UserProfile() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">Email</label>
-          {isEditing ? (
-            <Input
-              type="email"
-              value={tempData.email}
-              onChange={(e) => setTempData({ ...tempData, email: e.target.value })}
-              disabled={isLoading}
-            />
-          ) : (
-            <p className="text-lg">{userData.email}</p>
-          )}
+          <p className="text-lg">{userData.email}</p>
         </div>
 
         <div className="space-y-2">
@@ -153,18 +185,27 @@ export function UserProfile() {
           {isEditing ? (
             <Input
               type="text"
-              value={tempData.fullName}
-              onChange={(e) => setTempData({ ...tempData, fullName: e.target.value })}
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
               disabled={isLoading}
+              placeholder="Enter your full name"
             />
           ) : (
             <p className="text-lg">{userData.fullName || "Not set"}</p>
           )}
         </div>
 
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Role</label>
+          <p className="text-lg capitalize">{userData.role}</p>
+        </div>
+
         <div className="flex gap-2 pt-4">
-          <Button onClick={handleEdit} disabled={isLoading}>
-            {isEditing ? "Save Changes" : "Edit Profile"}
+          <Button 
+            onClick={handleEdit} 
+            disabled={isLoading || (isEditing && !tempName.trim())}
+          >
+            {isEditing ? "Save Name" : "Edit Name"}
           </Button>
           {isEditing && (
             <Button variant="outline" onClick={handleCancel} disabled={isLoading}>

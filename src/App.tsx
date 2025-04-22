@@ -14,9 +14,14 @@ import Auth from "./pages/Auth";
 import AgentDashboard from "./pages/AgentDashboard";
 import AddListing from "./pages/AddListing";
 import AdminDashboard from "./pages/AdminDashboard";
+import MyListings from "./pages/MyListings";
+import AllAgents from './pages/AllAgents';
+import PendingListings from './pages/PendingListings';
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { Loader2 } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const queryClient = new QueryClient();
 
@@ -50,41 +55,64 @@ const App = () => {
 
   // Protect agent routes
   const AgentRoute = ({ children }: { children: React.ReactNode }) => {
-    if (!session) {
+    const [isAgent, setIsAgent] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+      const checkAgentRole = async () => {
+        if (!session) {
+          setIsLoading(false);
+          return;
+        }
+        
+        const { data } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        setIsAgent(data?.role === 'agent');
+        setIsLoading(false);
+      };
+
+      checkAgentRole();
+    }, [session]);
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+    }
+
+    if (!session || !isAgent) {
       return <Navigate to="/auth" replace />;
     }
-    // Check if user is an agent
-    const checkAgentRole = async () => {
-      const { data } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-      return data?.role === 'agent';
-    };
-    if (!checkAgentRole()) {
-      return <Navigate to="/" replace />;
-    }
+
     return <>{children}</>;
   };
 
   // Protect admin routes
   const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+    const { isAdmin, isLoading } = useUserRole();
+
     if (!session) {
       return <Navigate to="/auth" replace />;
     }
-    // Check if user is an admin
-    const checkAdminRole = async () => {
-      const { data } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-      return data?.role === 'admin';
-    };
-    if (!checkAdminRole()) {
+
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      );
+    }
+
+    if (!isAdmin) {
       return <Navigate to="/" replace />;
     }
+
     return <>{children}</>;
   };
 
@@ -133,12 +161,28 @@ const App = () => {
                 } 
               />
               <Route 
+                path="/my-listings" 
+                element={
+                  <AgentRoute>
+                    <MyListings />
+                  </AgentRoute>
+                } 
+              />
+              <Route 
                 path="/admin-dashboard" 
                 element={
                   <AdminRoute>
                     <AdminDashboard />
                   </AdminRoute>
                 } 
+              />
+              <Route 
+                path="/admin/all-agents" 
+                element={<AllAgents />} 
+              />
+              <Route 
+                path="/admin/pending-listings" 
+                element={<PendingListings />} 
               />
               <Route path="*" element={<NotFound />} />
             </Routes>

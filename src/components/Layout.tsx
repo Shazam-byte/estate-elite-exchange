@@ -1,10 +1,13 @@
-
 import { Link, useLocation } from "react-router-dom";
-import { Home, Search, Heart, User, LogIn } from "lucide-react";
+import { Home, Search, Heart, User, LogIn, Plus, ListChecks, Users, FileCheck } from "lucide-react";
 import { Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
 
 export function Layout({ 
   children, 
@@ -14,6 +17,15 @@ export function Layout({
   session: Session | null 
 }) {
   const location = useLocation();
+  const { isAgent, isAdmin, isLoading } = useUserRole();
+  
+  // Debug logs
+  useEffect(() => {
+    console.log('Layout - Session:', session?.user?.id);
+    console.log('Layout - Is Agent:', isAgent);
+    console.log('Layout - Is Admin:', isAdmin);
+    console.log('Layout - Is Loading:', isLoading);
+  }, [session, isAgent, isAdmin, isLoading]);
   
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -44,6 +56,58 @@ export function Layout({
             
             {session ? (
               <>
+                {/* Show different navigation items based on role */}
+                {!isLoading && (
+                  <>
+                    {isAdmin ? (
+                      <>
+                        <Link
+                          to="/admin/all-agents"
+                          className={cn(
+                            buttonVariants({ variant: "ghost" }),
+                            "justify-start"
+                          )}
+                        >
+                          <Users className="mr-2 h-4 w-4" />
+                          All Agents
+                        </Link>
+                        <Link
+                          to="/admin/pending-listings"
+                          className={cn(
+                            buttonVariants({ variant: "ghost" }),
+                            "justify-start"
+                          )}
+                        >
+                          <FileCheck className="mr-2 h-4 w-4" />
+                          Pending Listings
+                        </Link>
+                      </>
+                    ) : isAgent ? (
+                      <>
+                        <Link
+                          to="/add-listing"
+                          className={cn(
+                            buttonVariants({ variant: "ghost" }),
+                            "justify-start"
+                          )}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Listing
+                        </Link>
+                        <Link
+                          to="/my-listings"
+                          className={cn(
+                            buttonVariants({ variant: "ghost" }),
+                            "justify-start"
+                          )}
+                        >
+                          <ListChecks className="mr-2 h-4 w-4" />
+                          My Listings
+                        </Link>
+                      </>
+                    ) : null}
+                  </>
+                )}
                 <Link 
                   to="/favorites" 
                   className="flex items-center gap-1 hover:text-primary transition-colors"
@@ -52,7 +116,7 @@ export function Layout({
                   <span className="hidden md:inline">Favorites</span>
                 </Link>
                 <Link 
-                  to="/profile"
+                  to="/profile" 
                   className="flex items-center gap-1 hover:text-primary transition-colors"
                 >
                   <User className="h-5 w-5" />
@@ -61,14 +125,15 @@ export function Layout({
                 <Button 
                   variant="ghost" 
                   onClick={handleLogout}
-                  className="hover:text-destructive"
+                  className="flex items-center gap-1"
                 >
-                  Logout
+                  <LogIn className="h-5 w-5" />
+                  <span className="hidden md:inline">Logout</span>
                 </Button>
               </>
             ) : (
               <Link 
-                to="/auth"
+                to="/auth" 
                 className="flex items-center gap-1 hover:text-primary transition-colors"
               >
                 <LogIn className="h-5 w-5" />

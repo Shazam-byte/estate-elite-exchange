@@ -208,4 +208,8 @@ INSERT INTO appointments (
     'pending',
     'Client requested a virtual tour first.',
     NOW()
-  ); 
+  );
+
+UPDATE users 
+SET role = 'admin' 
+WHERE email = 'admin@example.com'; 

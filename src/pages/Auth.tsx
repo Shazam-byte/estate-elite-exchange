@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/sonner";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +12,8 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from?.pathname || '/';
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +30,7 @@ const Auth = () => {
         if (error) throw error;
         
         toast.success('Logged in successfully');
-        navigate('/');
+        navigate(from, { replace: true });
       } else {
         // Sign Up
         console.log('Starting signup process...');
@@ -89,9 +91,9 @@ const Auth = () => {
         }
         
         toast.success('Account created successfully. Please check your email to confirm.');
-        navigate('/');
+        navigate(from, { replace: true });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Full error object:', error);
       const errorMessage = error.message || error.error_description || error.details || 'An error occurred during authentication';
       toast.error(errorMessage);
